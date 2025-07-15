@@ -58,14 +58,6 @@ app.post('/send-sms', async (req, res) => {
   }
 });
 
-// Catch-all route (optional)
-app.all('*', (req, res) => {
-  res.status(404).json({
-    Status: 'Failed',
-    Message: 'Endpoint not found'
-  });
-});
-
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
