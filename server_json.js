@@ -39,21 +39,22 @@ app.post('/send-sms', async (req, res) => {
 
   try {
     const response = await axios.get(url, { params, timeout: 5000 });
-
-    // Normalize for mobile app
+  
+    console.log('✅ EgoSMS raw response:', response.data);
+  
     if (typeof response.data === 'string') {
-      res.json({ Status: 'Success', Message: response.data });
+      res.status(200).json({ Status: 'Success', Message: response.data });
     } else {
-      res.json(response.data);
+      res.status(200).json(response.data);
     }
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('❌ Error from EgoSMS:', error.message);
+  
+    const errorMessage = error.response?.data?.Message || error.message;
+  
     res.status(500).json({
       Status: 'Failed',
-      Message:
-        error.code === 'ECONNABORTED' || error.message.includes('Network Error')
-          ? 'Check your internet connection.'
-          : error.response?.data?.Message || 'Unexpected error'
+      Message: errorMessage
     });
   }
 });
