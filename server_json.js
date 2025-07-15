@@ -3,26 +3,30 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const { encode } = require('html-entities');
 const dotenv = require('dotenv');
-const path = require('path');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json()); // For JSON bodies
 
-// Serve the HTML form
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'send.html'));
-});
-
-// Handle form submission
+// Main SMS API route
 app.post('/send-sms', async (req, res) => {
-  const { sender, number, message } = req.body;
+  console.log('📩 Incoming request:', req.body);
 
+  const { sender, number, message } = req.body;
   const username = process.env.EGOSMS_USERNAME;
   const password = process.env.EGOSMS_PASSWORD;
+
+  if (!sender || !number || !message) {
+    return res.status(400).json({
+      Status: 'Failed',
+      Message: 'Missing required fields'
+    });
+  }
 
   const url = 'https://www.egosms.co/api/v1/plain/';
   const params = {
@@ -34,26 +38,34 @@ app.post('/send-sms', async (req, res) => {
   };
 
   try {
-    console.log('About to call the url');
-    const response = await axios.get(url, {
-      params,
-      timeout: 5000
-    });
+    const response = await axios.get(url, { params, timeout: 5000 });
 
-    // Respond with JSON instead of HTML
-    res.json({ success: true, message: response.data });
-    console.log('Successfuly responded the Json');
+    // Normalize for mobile app
+    if (typeof response.data === 'string') {
+      res.json({ Status: 'Success', Message: response.data });
+    } else {
+      res.json(response.data);
+    }
   } catch (error) {
-    const msg = error.code === 'ECONNABORTED' || error.message.includes('Network Error')
-      ? 'Check your internet connection.'
-      : `Error: ${error.message}`;
-    console.log('About to log the message');
-
-    res.json({ success: false, message: msg });
-    console.log('Successfully logged the message');
+    console.error('❌ Error:', error.message);
+    res.status(500).json({
+      Status: 'Failed',
+      Message:
+        error.code === 'ECONNABORTED' || error.message.includes('Network Error')
+          ? 'Check your internet connection.'
+          : error.response?.data?.Message || 'Unexpected error'
+    });
   }
 });
 
+// Catch-all route (optional)
+app.all('*', (req, res) => {
+  res.status(404).json({
+    Status: 'Failed',
+    Message: 'Endpoint not found'
+  });
+});
+
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
