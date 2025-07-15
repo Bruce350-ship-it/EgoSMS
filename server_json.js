@@ -34,6 +34,7 @@ app.post('/send-sms', async (req, res) => {
   };
 
   try {
+    console.log('About to call the url');
     const response = await axios.get(url, {
       params,
       timeout: 5000
@@ -41,12 +42,15 @@ app.post('/send-sms', async (req, res) => {
 
     // Respond with JSON instead of HTML
     res.json({ success: true, message: response.data });
+    console.log('Successfuly responded the Json');
   } catch (error) {
     const msg = error.code === 'ECONNABORTED' || error.message.includes('Network Error')
       ? 'Check your internet connection.'
       : `Error: ${error.message}`;
+    console.log('About to log the message');
 
     res.json({ success: false, message: msg });
+    console.log('Successfully logged the message');
   }
 });
 
